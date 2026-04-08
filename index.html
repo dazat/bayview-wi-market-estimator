@@ -278,6 +278,19 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
   margin-top:20px; padding-top:16px; border-bottom:none; border-top:1px solid var(--border);
 }
 
+.fc-tog {
+  font-family:var(--mono); font-size:10px; font-weight:600;
+  padding:5px 12px; border-radius:20px; cursor:pointer;
+  border:1px solid var(--tog-color,var(--border));
+  background:transparent; color:var(--muted);
+  letter-spacing:.04em; transition:all .15s;
+}
+.fc-tog:hover { color:var(--tog-color,var(--text)); }
+.fc-tog.active {
+  background:color-mix(in srgb, var(--tog-color,var(--accent)) 15%, transparent);
+  color:var(--tog-color,var(--accent)); border-color:var(--tog-color,var(--accent));
+}
+
 .hidden { display:none !important; }
 </style>
 </head>
@@ -308,8 +321,8 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
     </div>
   </div>
   <div class="fc-chip">
-    <small>53235 ARIMA MEDIAN · Q1 2026</small>
-    $313,988
+    <small id="fc-chip-lbl">53235 ARIMA MEDIAN · Q1 2026</small>
+    <span id="fc-chip-val">$313,988</span>
   </div>
 </header>
 
@@ -404,7 +417,15 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
         </div>
 
         <div class="sec-title">Market Context</div>
-        <div class="grid3">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
+          <div class="fld">
+            <label class="lbl">Market Area</label>
+            <select id="f-area" onchange="updateForecastQA()">
+              <option value="35">53235 — Saint Francis</option>
+              <option value="07">53207 — Bay View</option>
+              <option value="adj">Adjacent (53110/53172/53221)</option>
+            </select>
+          </div>
           <div class="fld">
             <label class="lbl">Season</label>
             <select id="f-season">
@@ -420,16 +441,7 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
           </div>
           <div class="fld">
             <label class="lbl">Forecast Quarter</label>
-            <select id="f-qa">
-              <option value="0">Q1 2026 – $313,988</option>
-              <option value="1">Q2 2026 – $311,207</option>
-              <option value="2">Q3 2026 – $318,881</option>
-              <option value="3">Q4 2026 – $320,674</option>
-              <option value="4">Q1 2027 – $322,748</option>
-              <option value="5">Q2 2027 – $327,762</option>
-              <option value="6">Q3 2027 – $324,074</option>
-              <option value="7">Q4 2027 – $331,575</option>
-            </select>
+            <select id="f-qa"></select>
           </div>
         </div>
 
@@ -517,16 +529,24 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
 
     <!-- Chart 1: Price history + ARIMA forecast -->
     <div class="panel" style="margin-bottom:20px">
-      <div class="ptitle">53235 Median Sale Price — History + 8-Quarter ARIMA Forecast</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+        <div class="ptitle" style="margin-bottom:0;padding-bottom:0;border-bottom:none">Median Sale Price — History + 8-Quarter ARIMA Forecasts</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-right:4px">Show:</span>
+          <button id="tog-35"  class="fc-tog active" onclick="toggleForecast('35')" style="--tog-color:#c9a84c">53235 Saint Francis</button>
+          <button id="tog-07"  class="fc-tog"        onclick="toggleForecast('07')" style="--tog-color:#5a9be0">53207 Bay View</button>
+          <button id="tog-adj" class="fc-tog"        onclick="toggleForecast('adj')" style="--tog-color:#4caf80">Adjacent All-5</button>
+        </div>
+      </div>
       <div style="position:relative;height:360px">
         <canvas id="chart-price"></canvas>
       </div>
       <div style="margin-top:10px;display:flex;gap:20px;font-family:var(--mono);font-size:10px;color:var(--muted);flex-wrap:wrap">
-        <span>── Historical (Q4 2014 – Q4 2025, quarterly)</span>
-        <span style="color:rgba(201,168,76,0.7)">- - Forecast (Q1 2026 – Q4 2027)</span>
-        <span style="color:rgba(201,168,76,0.4)">▌ 80% CI</span>
-        <span style="color:rgba(201,168,76,0.2)">▌ 95% CI</span>
-        <span style="color:rgba(90,155,224,0.7)">- - Current median $293,750</span>
+        <span style="color:var(--accent)">── 53235 Historical</span>
+        <span style="color:rgba(201,168,76,0.7)">- - 53235 Forecast + 80/95% CI</span>
+        <span style="color:rgba(90,155,224,0.8)">- - 53207 Forecast</span>
+        <span style="color:rgba(76,175,128,0.8)">- - Adjacent All-5 Forecast</span>
+        <span style="color:rgba(90,155,224,0.5)">- - Current median $293,750</span>
       </div>
     </div>
 
@@ -554,13 +574,15 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
 
     <!-- Forecast table -->
     <div class="panel">
-      <div class="ptitle">ARIMA(0,1,1)(2,0,0)[4] with Drift — 8-Quarter Projection</div>
-      <div style="display:flex;gap:24px;margin-bottom:20px;font-family:var(--mono);font-size:11px;color:var(--dim);flex-wrap:wrap">
-        <span>Model: <strong style="color:var(--accent)">ARIMA(0,1,1)(2,0,0)[4] + Drift</strong></span>
-        <span>Geography: <strong style="color:var(--text)">53235 — Saint Francis, WI</strong></span>
-        <span>Type: <strong style="color:var(--text)">Single Family Residential</strong></span>
-        <span>Drift: <strong style="color:var(--text)">~$4,044 / quarter</strong></span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+        <div class="ptitle" style="margin-bottom:0;padding-bottom:0;border-bottom:none">8-Quarter ARIMA Projection</div>
+        <select id="fc-tbl-sel" onchange="renderForecastTable()" style="font-family:var(--mono);font-size:11px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:5px 10px;cursor:pointer">
+          <option value="35">53235 — Saint Francis</option>
+          <option value="07">53207 — Bay View</option>
+          <option value="adj">Adjacent (All-5 Combined)</option>
+        </select>
       </div>
+      <div id="fc-tbl-meta" style="display:flex;gap:24px;margin-bottom:16px;font-family:var(--mono);font-size:11px;color:var(--dim);flex-wrap:wrap"></div>
       <div style="overflow-x:auto">
         <table class="ftbl" id="fc-tbl">
           <thead>
@@ -576,10 +598,7 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
           <tbody id="fc-body"></tbody>
         </table>
       </div>
-      <div style="margin-top:16px;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.8">
-        Source: Redfin zip_code_market_tracker &nbsp;·&nbsp; Trained Q4 2014 – Q4 2025 &nbsp;·&nbsp; Test MAPE 4.0% &nbsp;·&nbsp; Theil's U 0.90<br>
-        Q4 2024 outlier ($245,000, n=15) interpolated to $293,250 — sale-to-list 1.03 inconsistent with recorded median
-      </div>
+      <div id="fc-tbl-footer" style="margin-top:16px;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.8"></div>
     </div>
   </div>
 
@@ -724,8 +743,10 @@ const DEFAULT_COMPS = [
   { id:'ch',   address:"3175 California St", zip:"53207", beds:3, baths:1.5, sqft:1262, lot_sf:3049,  year_built:1929, list_price:335000, sale_price:355000, dom:1,   taxes_yr:5327, same_fp:false, garage:2, condition:3, season:"Spring"  },
 ];
 
-// Exact values from R forecast export
-const FORECAST = [
+// ── Forecast arrays from R auto.arima exports (April 2026) ──────────────────
+// FORECAST_35: 53235 Saint Francis — ARIMA(0,1,1)(2,0,0)[4] with drift
+//   Test MAPE 4.0% | Theil's U 0.90 | Primary anchor for Saint Francis listings
+const FORECAST_35 = [
   { label:"Q1 2026", point:313988.18, lo_80:296587.27, hi_80:331389.09, lo_95:287375.78, hi_95:340600.58 },
   { label:"Q2 2026", point:311207.41, lo_80:292836.27, hi_80:329578.54, lo_95:283111.18, hi_95:339303.63 },
   { label:"Q3 2026", point:318881.19, lo_80:299588.56, hi_80:338173.81, lo_95:289375.66, hi_95:348386.71 },
@@ -736,9 +757,74 @@ const FORECAST = [
   { label:"Q4 2027", point:331575.01, lo_80:307818.24, hi_80:355331.78, lo_95:295242.17, hi_95:367907.85 },
 ];
 
+// FORECAST_07: 53207 Bay View — R auto.arima (stepwise=FALSE)
+//   Test MAPE 6.1% | Theil's U 0.78 | Primary anchor for Bay View listings
+const FORECAST_07 = [
+  { label:"Q1 2026", point:336540.54, lo_80:320399.31, hi_80:352681.77, lo_95:311854.66, hi_95:361226.42 },
+  { label:"Q2 2026", point:338808.93, lo_80:322665.76, hi_80:354952.11, lo_95:314120.07, hi_95:363497.79 },
+  { label:"Q3 2026", point:328586.12, lo_80:312435.74, hi_80:344736.51, lo_95:303886.24, hi_95:353286.00 },
+  { label:"Q4 2026", point:332472.98, lo_80:313437.85, hi_80:351508.11, lo_95:303361.26, hi_95:361584.70 },
+  { label:"Q1 2027", point:345210.82, lo_80:323354.59, hi_80:367067.06, lo_95:311784.60, hi_95:378637.05 },
+  { label:"Q2 2027", point:350770.42, lo_80:328292.08, hi_80:373248.76, lo_95:316392.77, hi_95:385148.08 },
+  { label:"Q3 2027", point:350379.12, lo_80:327504.15, hi_80:373254.08, lo_95:315394.88, hi_95:385363.36 },
+  { label:"Q4 2027", point:353475.02, lo_80:329460.33, hi_80:377489.70, lo_95:316747.73, hi_95:390202.31 },
+];
+
+// FORECAST_ALL5: All 5 zips vol-weighted — R auto.arima (stepwise=FALSE)
+//   Test MAPE 2.3% | Theil's U 0.64 | Anchor for adjacent area listings
+//   Adjacent pooled (53110+53172+53221 only) retired — Theil's U 1.39, worse than naive
+const FORECAST_ALL5 = [
+  { label:"Q1 2026", point:324499.27, lo_80:314902.02, hi_80:334096.53, lo_95:309821.54, hi_95:339177.01 },
+  { label:"Q2 2026", point:330535.68, lo_80:319850.06, hi_80:341221.31, lo_95:314193.43, hi_95:346877.94 },
+  { label:"Q3 2026", point:321548.58, lo_80:309875.62, hi_80:333221.54, lo_95:303696.33, hi_95:339400.83 },
+  { label:"Q4 2026", point:320883.48, lo_80:308300.37, hi_80:333466.59, lo_95:301639.27, hi_95:340127.69 },
+  { label:"Q1 2027", point:344299.48, lo_80:329247.20, hi_80:359351.75, lo_95:321279.01, hi_95:367319.94 },
+  { label:"Q2 2027", point:350335.88, lo_80:333962.93, hi_80:366708.84, lo_95:325295.61, hi_95:375376.15 },
+  { label:"Q3 2027", point:341348.79, lo_80:323754.01, hi_80:358943.56, lo_95:314439.89, hi_95:368257.68 },
+  { label:"Q4 2027", point:340683.68, lo_80:321946.51, hi_80:359420.85, lo_95:312027.66, hi_95:369339.71 },
+];
+
 // ═══════════════════════════════════════════════════
-//  STATE
+//  FORECAST SELECTION HELPERS
 // ═══════════════════════════════════════════════════
+const FORECAST_MAP = {
+  '35':  { data: FORECAST_35,  label: '53235 — Saint Francis', model: 'ARIMA(0,1,1)(2,0,0)[4]+drift', mape:'4.0%', theil:'0.90' },
+  '07':  { data: FORECAST_07,  label: '53207 — Bay View',      model: 'ARIMA (R auto.arima)',          mape:'6.1%', theil:'0.78' },
+  'adj': { data: FORECAST_ALL5, label: 'Adjacent (53110/53172/53221)', model: 'All-5 vol-wtd ARIMA',   mape:'2.3%', theil:'0.64' },
+};
+
+function getForecast(area) {
+  return FORECAST_MAP[area] || FORECAST_MAP['35'];
+}
+
+function updateForecastQA() {
+  const area = document.getElementById('f-area').value;
+  const fc   = getForecast(area);
+  const sel  = document.getElementById('f-qa');
+  const cur  = sel.value;
+  sel.innerHTML = fc.data.map((f, i) =>
+    `<option value="${i}"${i==cur?' selected':''}>${f.label} – $${Math.round(f.point).toLocaleString()}</option>`
+  ).join('');
+
+  // Update header chip to reflect active area
+  const chip = document.getElementById('fc-chip-val');
+  if (chip) {
+    chip.textContent = '$' + Math.round(fc.data[0].point).toLocaleString();
+    document.getElementById('fc-chip-lbl').textContent = fc.label.toUpperCase() + ' ARIMA · Q1 2026';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  FORECAST TOGGLE STATE
+// ═══════════════════════════════════════════════════
+const fcToggles = { '35': true, '07': false, 'adj': false };
+
+function toggleForecast(area) {
+  fcToggles[area] = !fcToggles[area];
+  document.getElementById('tog-' + area).classList.toggle('active', fcToggles[area]);
+  renderPriceChart();
+}
+
 let comps = [];
 let sortKey = 'sqft';
 let sortDir = 1;
@@ -806,7 +892,8 @@ function estimateOffer(p) {
   if (!reg) return { error:"Not enough sold comps for PPSF regression (need ≥ 2 sold)." };
 
   const medSqft = computeMedianSqft();
-  const fc      = FORECAST[p.qa];
+  const fcMeta  = getForecast(p.area);
+  const fc      = fcMeta.data[p.qa];
 
   // ── Step 1: PPSF ratio ──────────────────────────
   const ppsfThis   = reg.intercept + reg.slope * p.sqft;
@@ -859,7 +946,7 @@ function estimateOffer(p) {
             :                (d<=7?0.995:0.960);  // winter
 
   return {
-    fc, medSqft, reg, ppsfRatio, ppsfThis, ppsfMedian, intPt,
+    fc, fcMeta, medSqft, reg, ppsfRatio, ppsfThis, ppsfMedian, intPt,
     offerPt: Math.round(adjPt * mkt),
     offerLo: Math.round(adjLo * mkt),
     offerHi: Math.round(adjHi * mkt),
@@ -886,6 +973,7 @@ function runEstimate() {
   const bsmt   = parseFloat(document.getElementById('f-bsmt').value) || 0;
   const roofV  = document.getElementById('f-roof').value;
   const hvacV  = document.getElementById('f-hvac').value;
+  const area   = document.getElementById('f-area').value;
   const estate = document.getElementById('f-estate').checked;
   const addr   = document.getElementById('f-address').value.trim() || 'Property';
 
@@ -894,7 +982,7 @@ function runEstimate() {
   }
 
   const result = estimateOffer({
-    sqft, list, lot, dom, beds, baths, garage, cond, season, qa,
+    sqft, list, lot, dom, beds, baths, garage, cond, season, qa, area,
     bsmt, roof: roofV===''?null:parseFloat(roofV),
     hvac: hvacV===''?null:parseFloat(hvacV),
     estate, addr
@@ -917,7 +1005,7 @@ const adjStr = v => {
 };
 
 function renderOutput(r) {
-  const { p, fc, adj, mkt, offerLo, offerPt, offerHi, intPt, ppsfRatio, medSqft, reg } = r;
+  const { p, fc, fcMeta, adj, mkt, offerLo, offerPt, offerHi, intPt, ppsfRatio, medSqft, reg } = r;
   const loC = adjCls(offerLo/p.list,1), ptC=adjCls(offerPt/p.list,1), hiC=adjCls(offerHi/p.list,1);
 
   const adjRows = [
@@ -940,6 +1028,7 @@ function renderOutput(r) {
       <div>
         <div class="offer-addr">${p.addr}</div>
         <div class="offer-meta">${p.beds ? p.beds+'bd / ' : ''}${p.baths}ba &nbsp;·&nbsp; ${p.sqft.toLocaleString()} sqft &nbsp;·&nbsp; ${p.season} &nbsp;·&nbsp; DOM ${p.dom} &nbsp;·&nbsp; Cond ${p.cond}/5 &nbsp;·&nbsp; ${p.garage}g &nbsp;·&nbsp; ${fc.label}</div>
+        <div class="offer-meta" style="margin-top:3px;color:var(--muted)">${fcMeta.label} &nbsp;·&nbsp; MAPE ${fcMeta.mape} &nbsp;·&nbsp; Theil's U ${fcMeta.theil}</div>
       </div>
       <div class="offer-lp">
         <small>List Price</small>
@@ -1090,9 +1179,28 @@ function updateModelBar() {
 // ═══════════════════════════════════════════════════
 //  FORECAST TABLE
 // ═══════════════════════════════════════════════════
-function renderForecast() {
-  // ── Forecast table ──────────────────────────────
-  document.getElementById('fc-body').innerHTML = FORECAST.map((f,i)=>`
+// ═══════════════════════════════════════════════════
+//  FORECAST TABLE (model-aware)
+// ═══════════════════════════════════════════════════
+const FC_META = {
+  '35':  { label:'53235 — Saint Francis', model:'ARIMA(0,1,1)(2,0,0)[4] + Drift', mape:'4.0%', theil:'0.90', note:'Q4 2024 outlier ($245k, n=15) interpolated to $293,250' },
+  '07':  { label:'53207 — Bay View',      model:'R auto.arima (stepwise=FALSE)',   mape:'6.1%', theil:'0.78', note:'No outlier treatment — Q3 2024 dip is genuine market behavior' },
+  'adj': { label:'Adjacent All-5 Combined (53110+53172+53221+53207+53235)', model:'R auto.arima vol-weighted', mape:'2.3%', theil:'0.64', note:'Best predictive accuracy of four models tested — adjacent pooled retired (Theil U 1.39)' },
+};
+
+function renderForecastTable() {
+  const area = document.getElementById('fc-tbl-sel').value;
+  const meta = FC_META[area];
+  const fc   = getForecast(area).data;
+
+  document.getElementById('fc-tbl-meta').innerHTML = `
+    <span>Model: <strong style="color:var(--accent)">${meta.model}</strong></span>
+    <span>Geography: <strong style="color:var(--text)">${meta.label}</strong></span>
+    <span>Test MAPE: <strong style="color:var(--text)">${meta.mape}</strong></span>
+    <span>Theil's U: <strong style="color:var(--text)">${meta.theil}</strong></span>
+  `;
+
+  document.getElementById('fc-body').innerHTML = fc.map((f,i)=>`
     <tr class="${i===0?'cur':''}">
       <td>${f.label}${i===0?' <span style="font-size:10px;color:var(--muted)">(current)</span>':''}</td>
       <td class="pt">${$(f.point)}</td>
@@ -1101,7 +1209,13 @@ function renderForecast() {
       <td>${$(f.lo_95)}</td>
       <td>${$(f.hi_95)}</td>
     </tr>`).join('');
-  // ── Charts ──────────────────────────────────────
+
+  document.getElementById('fc-tbl-footer').innerHTML =
+    `Source: Redfin zip_code_market_tracker &nbsp;·&nbsp; Trained Q4 2014 – Q4 2025 &nbsp;·&nbsp; ${meta.note}`;
+}
+
+function renderForecast() {
+  renderForecastTable();
   renderPriceChart();
   renderSTLChart();
   renderPPSFChart();
@@ -1316,7 +1430,7 @@ function basePlugins(tooltip_cb) {
 }
 
 // ═══════════════════════════════════════════════════
-//  CHART 1: PRICE HISTORY + FORECAST
+//  CHART 1: PRICE HISTORY + FORECAST (multi-series with toggles)
 // ═══════════════════════════════════════════════════
 function renderPriceChart() {
   if (chPrice) { chPrice.destroy(); chPrice = null; }
@@ -1324,27 +1438,55 @@ function renderPriceChart() {
   const histDates = Q35_HIST.map(d => d.d);
   const fcDates   = ['2026-03-01','2026-06-01','2026-09-01','2026-12-01',
                      '2027-03-01','2027-06-01','2027-09-01','2027-12-01'];
-  const allDates  = [...histDates, ...fcDates];  // 53 total
-  const n         = histDates.length;            // 45
+  const allDates  = [...histDates, ...fcDates];
+  const n         = histDates.length;  // 45
+  const pad       = [...Array(n).fill(null)];
+  const lastHist  = Q35_HIST[n-1].p;
 
-  // Historical line: values at 0..44, null at 45..52
-  const histData = [...Q35_HIST.map(d=>d.p), ...Array(8).fill(null)];
+  // Historical line — always shown
+  const histData  = [...Q35_HIST.map(d=>d.p), ...Array(8).fill(null)];
 
-  // Forecast line: null at 0..43, connection at 44, fc values at 45..52
-  const lastHist = Q35_HIST[n-1].p;
-  const fcData   = [...Array(n-1).fill(null), lastHist, ...FORECAST.map(f=>f.point)];
+  // Build datasets array dynamically based on toggle state
+  const datasets = [];
 
-  // CI bands: null at 0..44, fc values at 45..52
-  const pad = [...Array(n).fill(null)];
-  const hi80 = [...pad, ...FORECAST.map(f=>f.hi_80)];
-  const lo80 = [...pad, ...FORECAST.map(f=>f.lo_80)];
-  const hi95 = [...pad, ...FORECAST.map(f=>f.hi_95)];
-  const lo95 = [...pad, ...FORECAST.map(f=>f.lo_95)];
+  // 53235 — gold, includes CI bands when active
+  if (fcToggles['35']) {
+    const fcData35 = [...Array(n-1).fill(null), lastHist, ...FORECAST_35.map(f=>f.point)];
+    const hi95 = [...pad, ...FORECAST_35.map(f=>f.hi_95)];
+    const lo95 = [...pad, ...FORECAST_35.map(f=>f.lo_95)];
+    const hi80 = [...pad, ...FORECAST_35.map(f=>f.hi_80)];
+    const lo80 = [...pad, ...FORECAST_35.map(f=>f.lo_80)];
+    datasets.push(
+      { label:'95% CI (35)', data:hi95, borderColor:'transparent', backgroundColor:'rgba(201,168,76,0.07)', fill:'+1', pointRadius:0, tension:.3, order:6 },
+      { label:'',            data:lo95, borderColor:'transparent', backgroundColor:'transparent', fill:false, pointRadius:0, tension:.3, order:6 },
+      { label:'80% CI (35)', data:hi80, borderColor:'transparent', backgroundColor:'rgba(201,168,76,0.15)', fill:'+1', pointRadius:0, tension:.3, order:5 },
+      { label:'',            data:lo80, borderColor:'transparent', backgroundColor:'transparent', fill:false, pointRadius:0, tension:.3, order:5 },
+      { label:'53235 Forecast', data:fcData35, borderColor:'rgba(201,168,76,0.85)', borderDash:[6,4], borderWidth:2, backgroundColor:'transparent', fill:false, pointRadius:0, tension:.3, order:2 }
+    );
+  }
 
-  // Reference lines (flat across all dates)
-  const refMedian = allDates.map(()=>293750);
+  // 53207 — blue, point forecast only
+  if (fcToggles['07']) {
+    const fcData07 = [...Array(n-1).fill(null), lastHist, ...FORECAST_07.map(f=>f.point)];
+    datasets.push(
+      { label:'53207 Forecast', data:fcData07, borderColor:'rgba(90,155,224,0.85)', borderDash:[6,4], borderWidth:2, backgroundColor:'transparent', fill:false, pointRadius:0, tension:.3, order:3 }
+    );
+  }
 
-  // Tick callback: show year only when it changes
+  // All-5 combined — green, point forecast only
+  if (fcToggles['adj']) {
+    const fcDataAdj = [...Array(n-1).fill(null), lastHist, ...FORECAST_ALL5.map(f=>f.point)];
+    datasets.push(
+      { label:'Adjacent Forecast', data:fcDataAdj, borderColor:'rgba(76,175,128,0.85)', borderDash:[6,4], borderWidth:2, backgroundColor:'transparent', fill:false, pointRadius:0, tension:.3, order:4 }
+    );
+  }
+
+  // Historical + reference — always last so they render on top
+  datasets.push(
+    { label:'53235 Historical', data:histData, borderColor:GOLD, borderWidth:2.5, backgroundColor:'transparent', fill:false, pointRadius:3, pointBackgroundColor:GOLD, pointHoverRadius:5, tension:.3, order:1 },
+    { label:'Median $293,750',  data:allDates.map(()=>293750), borderColor:'rgba(90,155,224,0.4)', borderDash:[3,4], borderWidth:1.2, backgroundColor:'transparent', fill:false, pointRadius:0, order:7 }
+  );
+
   const tickCb = (val, idx) => {
     const d = allDates[idx];
     if(!d) return null;
@@ -1356,22 +1498,7 @@ function renderPriceChart() {
   const ctx = document.getElementById('chart-price').getContext('2d');
   chPrice = new Chart(ctx, {
     type: 'line',
-    data: {
-      labels: allDates,
-      datasets: [
-        // CI bands — drawn first (behind)
-        { label:'95% CI', data:hi95, borderColor:'transparent', backgroundColor:'rgba(201,168,76,0.07)', fill:'+1', pointRadius:0, tension:.3, order:5 },
-        { label:'',       data:lo95, borderColor:'transparent', backgroundColor:'transparent',           fill:false,pointRadius:0, tension:.3, order:5 },
-        { label:'80% CI', data:hi80, borderColor:'transparent', backgroundColor:'rgba(201,168,76,0.16)', fill:'+1', pointRadius:0, tension:.3, order:4 },
-        { label:'',       data:lo80, borderColor:'transparent', backgroundColor:'transparent',           fill:false,pointRadius:0, tension:.3, order:4 },
-        // Forecast center
-        { label:'Forecast', data:fcData, borderColor:'rgba(201,168,76,0.75)', borderDash:[6,4], borderWidth:2, backgroundColor:'transparent', fill:false, pointRadius:0, tension:.3, order:2 },
-        // Historical
-        { label:'53235 Historical', data:histData, borderColor:GOLD, borderWidth:2.5, backgroundColor:'transparent', fill:false, pointRadius:3, pointBackgroundColor:GOLD, pointHoverRadius:5, tension:.3, order:1 },
-        // Reference lines
-        { label:"Median $293,750",     data:refMedian, borderColor:'rgba(90,155,224,0.5)', borderDash:[3,4], borderWidth:1.2, backgroundColor:'transparent', fill:false, pointRadius:0, order:3 },
-      ]
-    },
+    data: { labels: allDates, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode:'index', intersect:false },
@@ -1517,6 +1644,7 @@ function renderPPSFChart() {
 //  INIT
 // ═══════════════════════════════════════════════════
 loadComps();
+updateForecastQA();
 </script>
 </body>
 </html>
