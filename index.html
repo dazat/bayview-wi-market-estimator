@@ -247,6 +247,7 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
 
 .z35 { color:var(--accent); }
 .z07 { color:var(--blue); }
+.zadj { color:#a06ce0; }
 
 /* ── FORECAST TABLE ──────────────────────────────────── */
 .ftbl { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:13px; }
@@ -622,6 +623,7 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
         <select id="m-zip">
           <option value="53207">53207 — Bay View</option>
           <option value="53235">53235 — Saint Francis</option>
+          <option value="adj">Adjacent (53110 / 53172 / 53221)</option>
         </select>
       </div>
       <div class="fld">
@@ -635,7 +637,14 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
       </div>
       <div class="fld">
         <label class="lbl">Beds</label>
-        <input type="number" id="m-beds" placeholder="2" min="1">
+        <select id="m-beds">
+          <option value="0">Studio</option>
+          <option value="1">1 bed</option>
+          <option value="2" selected>2 bed</option>
+          <option value="3">3 bed</option>
+          <option value="4">4 bed</option>
+          <option value="5">5+ bed</option>
+        </select>
       </div>
       <div class="fld">
         <label class="lbl">Baths</label>
@@ -702,6 +711,10 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
         <input type="checkbox" id="m-samefp">
         <label for="m-samefp">Same floorplan as Eden Place</label>
       </div>
+      <div class="chk-row" style="margin-top:8px">
+        <input type="checkbox" id="m-asis">
+        <label for="m-asis">Sold as-is</label>
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -717,30 +730,38 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); curs
 
 const DEFAULT_COMPS = [
   // ── Active listing (our reference property) ──────────────────────────────
-  { id:'eden', address:"1918 Eden Place",    zip:"53235", beds:2, baths:1.5, sqft:1058, lot_sf:6098,  year_built:1944, list_price:274000, sale_price:null,   dom:3,   taxes_yr:3825, same_fp:true,  garage:1, condition:5, season:"Spring"  },
+  { id:'eden', address:"1918 Eden Place",    zip:"53235", beds:2, baths:1.5, sqft:1058, lot_sf:6098,  year_built:1944, list_price:274000, sale_price:null,   dom:3,   taxes_yr:3825,  same_fp:true,  sold_asis:false, garage:1, condition:5, season:"Spring" },
   // ── Same floorplan comps ─────────────────────────────────────────────────
-  { id:'c1',   address:"1742 Eden Place",    zip:"53235", beds:2, baths:1.5, sqft:1276, lot_sf:5662,  year_built:1944, list_price:329000, sale_price:334000, dom:6,   taxes_yr:3530, same_fp:true,  garage:1, condition:4, season:"Spring"  },
-  { id:'c2',   address:"1627 Eden Place",    zip:"53235", beds:2, baths:1.5, sqft:1138, lot_sf:4791,  year_built:1947, list_price:274900, sale_price:300000, dom:2,   taxes_yr:5075, same_fp:true,  garage:1, condition:4, season:"Summer"  },
-  { id:'c6',   address:"1633 Eden Place",    zip:"53235", beds:2, baths:1.5, sqft:968,  lot_sf:4791,  year_built:1947, list_price:265000, sale_price:264000, dom:12,  taxes_yr:4688, same_fp:true,  garage:1, condition:3, season:"Fall"    },
-  { id:'cb',   address:"2319 Eden Place",    zip:"53235", beds:3, baths:1.0, sqft:1050, lot_sf:8712,  year_built:1945, list_price:279900, sale_price:300500, dom:6,   taxes_yr:4058, same_fp:true,  garage:2, condition:4, season:"Winter"  },
+  { id:'c1',   address:"1742 Eden Place",    zip:"53235", beds:2, baths:1.5, sqft:1276, lot_sf:5662,  year_built:1944, list_price:329000, sale_price:334000, dom:6,   taxes_yr:3530,  same_fp:true,  sold_asis:false, garage:1, condition:4, season:"Spring" },
+  { id:'c2',   address:"1627 Eden Place",    zip:"53235", beds:2, baths:1.5, sqft:1138, lot_sf:4791,  year_built:1947, list_price:274900, sale_price:300000, dom:2,   taxes_yr:5075,  same_fp:true,  sold_asis:false, garage:1, condition:4, season:"Summer" },
+  { id:'c6',   address:"1633 Eden Place",    zip:"53235", beds:2, baths:1.5, sqft:968,  lot_sf:4791,  year_built:1947, list_price:265000, sale_price:264000, dom:12,  taxes_yr:4688,  same_fp:true,  sold_asis:false, garage:1, condition:3, season:"Fall"   },
+  { id:'cb',   address:"2319 Eden Place",    zip:"53235", beds:3, baths:1.0, sqft:1050, lot_sf:8712,  year_built:1945, list_price:279900, sale_price:300500, dom:6,   taxes_yr:4058,  same_fp:true,  sold_asis:false, garage:2, condition:4, season:"Winter" },
   // ── Different floorplan comps ────────────────────────────────────────────
-  { id:'c3',   address:"3803 Ahmedi Ave",    zip:"53235", beds:2, baths:2.0, sqft:1289, lot_sf:4791,  year_built:1930, list_price:299000, sale_price:299000, dom:107, taxes_yr:4797, same_fp:false, garage:1, condition:3, season:"Winter"  },
-  { id:'c4',   address:"1525 Morgan Ave",    zip:"53207", beds:2, baths:1.0, sqft:1037, lot_sf:6969,  year_built:1953, list_price:259900, sale_price:285000, dom:3,   taxes_yr:5266, same_fp:false, garage:1, condition:3, season:"Summer"  },
-  { id:'c5',   address:"1904 Eden Place",    zip:"53235", beds:3, baths:1.0, sqft:974,  lot_sf:10018, year_built:1939, list_price:270000, sale_price:270000, dom:37,  taxes_yr:4901, same_fp:false, garage:1, condition:3, season:"Summer"  },
-  { id:'c7',   address:"3718 Iowa Ave",      zip:"53235", beds:5, baths:1.5, sqft:2048, lot_sf:7405,  year_built:1951, list_price:279900, sale_price:280000, dom:49,  taxes_yr:5994, same_fp:false, garage:2, condition:3, season:"Spring"  },
-  { id:'c8',   address:"Comp 8",             zip:"53207", beds:4, baths:2.0, sqft:1840, lot_sf:5663,  year_built:1918, list_price:269900, sale_price:274000, dom:57,  taxes_yr:4706, same_fp:false, garage:1, condition:3, season:"Spring"  },
-  { id:'cx',   address:"2429 Logan Ave",     zip:"53207", beds:2, baths:1.0, sqft:795,  lot_sf:3485,  year_built:1890, list_price:293000, sale_price:285000, dom:7,   taxes_yr:5674, same_fp:false, garage:1, condition:3, season:"Spring"  },
-  { id:'cy',   address:"Comp Y",             zip:"53207", beds:2, baths:1.5, sqft:1096, lot_sf:8276,  year_built:1945, list_price:289000, sale_price:315000, dom:2,   taxes_yr:5354, same_fp:false, garage:2, condition:3, season:"Spring"  },
-  { id:'cz',   address:"4461 Adams Ave",     zip:"53207", beds:4, baths:1.5, sqft:1513, lot_sf:6098,  year_built:1950, list_price:319900, sale_price:330000, dom:1,   taxes_yr:5160, same_fp:false, garage:1, condition:3, season:"Spring"  },
-  { id:'cw',   address:"4201 2nd St",        zip:"53207", beds:2, baths:1.0, sqft:1100, lot_sf:4792,  year_built:1939, list_price:274900, sale_price:290000, dom:1,   taxes_yr:4421, same_fp:false, garage:1, condition:3, season:"Spring"  },
-  { id:'ca',   address:"424 Waterford Ave",  zip:"53207", beds:3, baths:2.5, sqft:1431, lot_sf:6098,  year_built:1947, list_price:324900, sale_price:315000, dom:33,  taxes_yr:6813, same_fp:false, garage:2, condition:4, season:"Spring"  },
-  { id:'cc',   address:"164 Howard Ave",     zip:"53207", beds:3, baths:1.0, sqft:1482, lot_sf:4356,  year_built:1932, list_price:265000, sale_price:265000, dom:6,   taxes_yr:5082, same_fp:false, garage:2, condition:5, season:"Spring"  },
-  // ── New comps (Spring / Winter 2026) ─────────────────────────────────────
-  { id:'cd',   address:"4261 Kansas Ave",    zip:"53235", beds:3, baths:2.0, sqft:1152, lot_sf:8276,  year_built:1950, list_price:315000, sale_price:290000, dom:171, taxes_yr:null, same_fp:false, garage:1, condition:3, season:"Spring"  },
-  { id:'ce',   address:"338 Norwich St",     zip:"53207", beds:3, baths:1.0, sqft:1368, lot_sf:5227,  year_built:1950, list_price:289900, sale_price:318720, dom:1,   taxes_yr:5990, same_fp:false, garage:2, condition:3, season:"Winter"  },
-  { id:'cf',   address:"4062 Troy Ave",      zip:"53235", beds:3, baths:2.0, sqft:1020, lot_sf:6534,  year_built:1955, list_price:335000, sale_price:320000, dom:106, taxes_yr:4985, same_fp:false, garage:2, condition:3, season:"Winter"  },
-  { id:'cg',   address:"4260 4th St",        zip:"53207", beds:3, baths:1.0, sqft:1600, lot_sf:4792,  year_built:1948, list_price:285000, sale_price:285000, dom:56,  taxes_yr:5309, same_fp:false, garage:2, condition:4, season:"Winter"  },
-  { id:'ch',   address:"3175 California St", zip:"53207", beds:3, baths:1.5, sqft:1262, lot_sf:3049,  year_built:1929, list_price:335000, sale_price:355000, dom:1,   taxes_yr:5327, same_fp:false, garage:2, condition:3, season:"Spring"  },
+  { id:'c3',   address:"3803 Ahmedi Ave",    zip:"53235", beds:2, baths:2.0, sqft:1289, lot_sf:4791,  year_built:1930, list_price:299000, sale_price:299000, dom:107, taxes_yr:4797,  same_fp:false, sold_asis:false, garage:1, condition:3, season:"Winter" },
+  { id:'c4',   address:"1525 Morgan Ave",    zip:"53207", beds:2, baths:1.0, sqft:1037, lot_sf:6969,  year_built:1953, list_price:259900, sale_price:285000, dom:3,   taxes_yr:5266,  same_fp:false, sold_asis:false, garage:1, condition:3, season:"Summer" },
+  { id:'c5',   address:"1904 Eden Place",    zip:"53235", beds:3, baths:1.0, sqft:974,  lot_sf:10018, year_built:1939, list_price:270000, sale_price:270000, dom:37,  taxes_yr:4901,  same_fp:false, sold_asis:false, garage:1, condition:3, season:"Summer" },
+  { id:'c7',   address:"3718 Iowa Ave",      zip:"53235", beds:5, baths:1.5, sqft:2048, lot_sf:7405,  year_built:1951, list_price:279900, sale_price:280000, dom:49,  taxes_yr:5994,  same_fp:false, sold_asis:false, garage:2, condition:3, season:"Spring" },
+  { id:'c8',   address:"Comp 8",             zip:"53207", beds:4, baths:2.0, sqft:1840, lot_sf:5663,  year_built:1918, list_price:269900, sale_price:274000, dom:57,  taxes_yr:4706,  same_fp:false, sold_asis:false, garage:1, condition:3, season:"Spring" },
+  { id:'cx',   address:"2429 Logan Ave",     zip:"53207", beds:2, baths:1.0, sqft:795,  lot_sf:3485,  year_built:1890, list_price:293000, sale_price:285000, dom:7,   taxes_yr:5674,  same_fp:false, sold_asis:false, garage:1, condition:3, season:"Spring" },
+  { id:'cy',   address:"Comp Y",             zip:"53207", beds:2, baths:1.5, sqft:1096, lot_sf:8276,  year_built:1945, list_price:289000, sale_price:315000, dom:2,   taxes_yr:5354,  same_fp:false, sold_asis:false, garage:2, condition:3, season:"Spring" },
+  { id:'cz',   address:"4461 Adams Ave",     zip:"53207", beds:4, baths:1.5, sqft:1513, lot_sf:6098,  year_built:1950, list_price:319900, sale_price:330000, dom:1,   taxes_yr:5160,  same_fp:false, sold_asis:false, garage:1, condition:3, season:"Spring" },
+  { id:'cw',   address:"4201 2nd St",        zip:"53207", beds:2, baths:1.0, sqft:1100, lot_sf:4792,  year_built:1939, list_price:274900, sale_price:290000, dom:1,   taxes_yr:4421,  same_fp:false, sold_asis:false, garage:1, condition:3, season:"Spring" },
+  { id:'ca',   address:"424 Waterford Ave",  zip:"53207", beds:3, baths:2.5, sqft:1431, lot_sf:6098,  year_built:1947, list_price:324900, sale_price:315000, dom:33,  taxes_yr:6813,  same_fp:false, sold_asis:false, garage:2, condition:4, season:"Spring" },
+  { id:'cc',   address:"164 Howard Ave",     zip:"53207", beds:3, baths:1.0, sqft:1482, lot_sf:4356,  year_built:1932, list_price:265000, sale_price:265000, dom:6,   taxes_yr:5082,  same_fp:false, sold_asis:false, garage:2, condition:5, season:"Spring" },
+  { id:'cd',   address:"4261 Kansas Ave",    zip:"53235", beds:3, baths:2.0, sqft:1152, lot_sf:8276,  year_built:1950, list_price:315000, sale_price:290000, dom:171, taxes_yr:null,  same_fp:false, sold_asis:false, garage:1, condition:3, season:"Spring" },
+  { id:'ce',   address:"338 Norwich St",     zip:"53207", beds:3, baths:1.0, sqft:1368, lot_sf:5227,  year_built:1950, list_price:289900, sale_price:318720, dom:1,   taxes_yr:5990,  same_fp:false, sold_asis:false, garage:2, condition:3, season:"Winter" },
+  { id:'cf',   address:"4062 Troy Ave",      zip:"53235", beds:3, baths:2.0, sqft:1020, lot_sf:6534,  year_built:1955, list_price:335000, sale_price:320000, dom:106, taxes_yr:4985,  same_fp:false, sold_asis:false, garage:2, condition:3, season:"Winter" },
+  { id:'cg',   address:"4260 4th St",        zip:"53207", beds:3, baths:1.0, sqft:1600, lot_sf:4792,  year_built:1948, list_price:285000, sale_price:285000, dom:56,  taxes_yr:5309,  same_fp:false, sold_asis:false, garage:2, condition:4, season:"Winter" },
+  { id:'ch',   address:"3175 California St", zip:"53207", beds:3, baths:1.5, sqft:1262, lot_sf:3049,  year_built:1929, list_price:335000, sale_price:355000, dom:1,   taxes_yr:5327,  same_fp:false, sold_asis:false, garage:2, condition:3, season:"Spring" },
+  // ── New comps (Apr 2026) ─────────────────────────────────────────────────
+  { id:'ci',   address:"817 Otjen",          zip:"53207", beds:3, baths:1.0, sqft:1092, lot_sf:2178,  year_built:1919, list_price:299900, sale_price:280000, dom:360, taxes_yr:3479,  same_fp:false, sold_asis:false, garage:0, condition:3, season:"Spring" },
+  { id:'cj',   address:"417 Euclid",         zip:"53207", beds:3, baths:2.0, sqft:1258, lot_sf:3049,  year_built:1890, list_price:300000, sale_price:295471, dom:1,   taxes_yr:3612,  same_fp:false, sold_asis:false, garage:2, condition:3, season:"Winter" },
+  { id:'ck',   address:"3164 Griffin",       zip:"53207", beds:3, baths:1.5, sqft:1123, lot_sf:3920,  year_built:1895, list_price:334000, sale_price:334000, dom:40,  taxes_yr:6100,  same_fp:false, sold_asis:false, garage:1, condition:4, season:"Fall"   },
+  { id:'cl',   address:"2961 Delaware",      zip:"53207", beds:3, baths:2.0, sqft:1406, lot_sf:3485,  year_built:1917, list_price:368000, sale_price:349000, dom:114, taxes_yr:6962,  same_fp:false, sold_asis:false, garage:2, condition:3, season:"Winter" },
+  { id:'cm',   address:"3466 Waterford",     zip:"53235", beds:2, baths:1.0, sqft:1153, lot_sf:8276,  year_built:1953, list_price:239900, sale_price:236000, dom:1,   taxes_yr:3598,  same_fp:false, sold_asis:false, garage:2, condition:3, season:"Winter" },
+  { id:'cn',   address:"3222 Logan",         zip:"53207", beds:3, baths:1.5, sqft:1596, lot_sf:4792,  year_built:1948, list_price:340000, sale_price:340000, dom:30,  taxes_yr:4873,  same_fp:false, sold_asis:false, garage:1, condition:3, season:"Fall"   },
+  { id:'co',   address:"3528 Herman",        zip:"53207", beds:4, baths:1.0, sqft:1183, lot_sf:6534,  year_built:1950, list_price:290000, sale_price:345000, dom:1,   taxes_yr:5533,  same_fp:false, sold_asis:false, garage:2, condition:3, season:"Winter" },
+  { id:'cp',   address:"3602 Whitnall",      zip:"53207", beds:3, baths:1.0, sqft:979,  lot_sf:5227,  year_built:1945, list_price:265000, sale_price:265000, dom:1,   taxes_yr:4777,  same_fp:false, sold_asis:false, garage:1, condition:3, season:"Spring" },
 ];
 
 // ── Forecast arrays from R auto.arima exports (April 2026) ──────────────────
@@ -1133,7 +1154,7 @@ function renderComps() {
 
     return `<tr>
       <td style="color:var(--text);font-weight:500">${c.address}</td>
-      <td class="${c.zip==='53235'?'z35':'z07'}">${c.zip}</td>
+      <td class="${c.zip==='53235'?'z35':c.zip==='53207'?'z07':'zadj'}">${c.zip==='adj'?'Adj':c.zip}</td>
       <td>${c.sqft.toLocaleString()}</td>
       <td>${c.beds}bd / ${c.baths}ba</td>
       <td>${c.garage}g</td>
@@ -1146,7 +1167,7 @@ function renderComps() {
       <td>${c.sale_price!=null ? c.dom : '—'}</td>
       <td>${sBadge}</td>
       <td>${c.condition}/5</td>
-      <td>${c.same_fp ? '<span class="badge b-same">✓</span>' : '—'}</td>
+      <td>${c.same_fp ? '<span class="badge b-same">✓ FP</span>' : '—'}${c.sold_asis ? ' <span class="badge" style="background:rgba(224,90,90,.12);color:#e05a5a">As-Is</span>' : ''}</td>
       <td>
         <button class="btn-edit" onclick="openModal('${c.id}')">Edit</button>
         <button class="btn-del"  onclick="delComp('${c.id}')">✕</button>
@@ -1257,15 +1278,18 @@ function openModal(id) {
     document.getElementById('m-dom').value    = c.dom;
     document.getElementById('m-taxes').value  = c.taxes_yr??'';
     document.getElementById('m-samefp').checked = c.same_fp;
+    document.getElementById('m-asis').checked   = c.sold_asis || false;
   } else {
-    ['m-addr','m-beds','m-sqft','m-lot','m-yb','m-list','m-sale','m-dom','m-taxes']
+    ['m-addr','m-sqft','m-lot','m-yb','m-list','m-sale','m-dom','m-taxes']
       .forEach(id=>{ document.getElementById(id).value=''; });
     document.getElementById('m-zip').value    = '53207';
+    document.getElementById('m-beds').value   = '2';
     document.getElementById('m-season').value = 'Spring';
     document.getElementById('m-baths').value  = '1.5';
     document.getElementById('m-garage').value = '1';
     document.getElementById('m-cond').value   = '3';
     document.getElementById('m-samefp').checked = false;
+    document.getElementById('m-asis').checked   = false;
   }
   document.getElementById('overlay').classList.remove('hidden');
 }
@@ -1291,7 +1315,7 @@ function saveComp() {
     address:    addr,
     zip:        document.getElementById('m-zip').value,
     season:     document.getElementById('m-season').value,
-    beds:       parseInt(document.getElementById('m-beds').value)||2,
+    beds:       parseInt(document.getElementById('m-beds').value),
     baths:      parseFloat(document.getElementById('m-baths').value),
     sqft,
     lot_sf:     parseFloat(document.getElementById('m-lot').value)||0,
@@ -1303,6 +1327,7 @@ function saveComp() {
     dom:        parseFloat(document.getElementById('m-dom').value)||0,
     taxes_yr:   parseFloat(document.getElementById('m-taxes').value)||null,
     same_fp:    document.getElementById('m-samefp').checked,
+    sold_asis:  document.getElementById('m-asis').checked,
   };
 
   if (editId) {
@@ -1320,7 +1345,7 @@ function saveComp() {
 function exportCSV() {
   const cols = [
     'address','zip','beds','baths','sqft','lot_sf','year_built',
-    'garage','condition','season','same_fp',
+    'garage','condition','season','same_fp','sold_asis',
     'list_price','sale_price','dom','taxes_yr',
   ];
 
